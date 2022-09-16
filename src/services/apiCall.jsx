@@ -190,6 +190,21 @@ class VoxServices {
       });
       return data
   }
+  adminTool(data) {
+    var data = axios({
+      method: "post",
+      data: data,
+      headers: {'Content-Type': 'application/json'},
+      url: "http://127.0.0.1:3001/adminTool",
+    })
+      .then(function (response) {
+        return response
+      })
+      .catch(function (response) {
+        return response
+      });
+      return data
+  }
   postReportVox(comment) {
     var data = axios({
       method: "post",
@@ -230,7 +245,21 @@ class VoxServices {
       });
       return data
   }
-
+  janitorTools(category) {
+    var data = axios({
+      method: "post",
+      url: "http://127.0.0.1:3001/janitorTools",
+      data: category,
+      headers: {'Content-Type': 'application/json'}
+    })
+      .then(function (response) {
+        return response
+      })
+      .catch(function (response) {
+        return response
+      });
+      return data
+  }
 
 }
 

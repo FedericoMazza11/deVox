@@ -35,7 +35,6 @@ function HiddenCategoriesModal() {
     <div class="modalBox modalConfig openModal" id="hiddenWords">
     <div class="modalHeader">
     <div class="modalTitle">Categorias ocultas</div>
-    <div class="closeModal">Cerrar</div>
     </div>
     <div class="modalContent">
     <div class="hiddenWords">

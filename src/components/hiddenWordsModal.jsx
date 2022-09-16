@@ -32,7 +32,6 @@ function HiddenWordsModal() {
 
     <div class="modalHeader">
     <div class="modalTitle">Palabras ocultas</div>
-    <div class="closeModal">Cerrar</div>
     </div>
     <div class="modalContent">
     <div class="hiddenWords">

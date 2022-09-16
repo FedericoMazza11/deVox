@@ -5,6 +5,8 @@ import { Routes, Route, Link, useParams } from "@solidjs/router"
 //Services---------------------|
 import VoxService from "../services/apiCall.jsx";
 import CategoryServices from "../services/categoriesService.jsx";
+import { makeIntersectionObserver } from '@solid-primitives/intersection-observer';
+
 
 //Icons
 import { FiPlus, FiMessageCircle } from "solid-icons/fi";
@@ -16,10 +18,13 @@ import CreateVox from './createVox.jsx'
 
 
 function Voxes() {
+  const [voxesTotal, setVoxesTotal] = createSignal(null);
   const [voxes, setVoxes] = createSignal(null);
+  const [voxesIndex, setVoxesIndex] = createSignal(50);
   const [showVoxModal, setShowVoxModal] = createSignal(false);
   const [categoryUrl, setCategoryUrl] = createSignal('');
   const [user, setUser] = createSignal(JSON.parse(localStorage.getItem("user")));
+  const [voxIndex, setVoxIndex] = createSignal(80);
 
   createEffect(() => {
     document.title = 'Devox'
@@ -30,15 +35,21 @@ function Voxes() {
     if (useParams().title) {
       VoxService.searchVoxes(useParams().title)
         .then((res) => {
-          setVoxes(res);
+          setVoxesTotal(res.data);
+          voxesIndexFunc(0, 40)
         })
         .catch((e) => {});
+
+
     } else if (useParams().id) {
       VoxService.getVoxes(useParams().id)
         .then((res) => {
-          setVoxes(res);
+          setVoxesTotal(res.data);
+          voxesIndexFunc(0, 40)
         })
         .catch((e) => {});
+
+
     } else {
       if (user()) {
 
@@ -48,19 +59,41 @@ function Voxes() {
 
       VoxService.findVoxes(user())
         .then((res) => {
-          setVoxes(res);
+          setVoxesTotal(res.data);
+          voxesIndexFunc(0, 40)
         })
         .catch((e) => {});
+
     }
 
   }, []);
 
-
+  const voxesIndexFunc = async (s, e) => {
+    var voxesArr = []
+    for (var j = s; j < e; j++) {
+        if (voxesTotal()[j]) {
+          voxesArr.push(voxesTotal()[j]);
+        }
+    }
+    setVoxes(voxesArr)
+  }
 
     const showVoxModalFunc = () => {
       setShowVoxModal(!showVoxModal())
     }
 
+
+    const addVoxes = async (e) => {
+      if (e.isIntersecting) {
+        voxesIndexFunc(0, voxIndex())
+        setVoxIndex(voxIndex() + 40)
+      }
+    }
+
+
+    const { add: intersectionObserver } = makeIntersectionObserver([], entries => {
+      entries.forEach(e => addVoxes(e));
+    });
 
 
   //HTML---------------------|
@@ -83,6 +116,7 @@ function Voxes() {
         {voxes() ? (
           <div class="voxList" id="voxList">
             <a
+            href="/about"
               class="vox newInVoxed"
               style={"background: url(../public/" + categoryUrl() + "devoxLogo.jpg"}
             >
@@ -95,8 +129,9 @@ function Voxes() {
               <div class="over"></div>
             </a>
 
-            {voxes() &&
-              voxes().data.map((vox) => {
+            {voxes() ?
+              <>
+              {voxes().map((vox) => {
                 return (
                   <Link
                     class="vox"
@@ -108,7 +143,15 @@ function Voxes() {
                     <div class="voxHeader">
                       <div class="tagList">
                         <div class="tag categoryTag">{CategoryServices.categoryFilter(vox.category)[0]}</div>
+                        {console.log()}
+                        {Date.now() < (Date.parse(vox.date) + 1000 * 10 * 60)?
+                          <div class="tag new">Nuevo</div>
+                        :
+                        ''
+                      }
                       </div>
+
+
 
                       <div class="voxComments textShadon">
                         <FiMessageCircle/>
@@ -123,6 +166,11 @@ function Voxes() {
                   </Link>
                 )
               })}
+              <div use:intersectionObserver></div>
+              </>
+              :
+              ''
+            }
           </div>
         ) : (
           ""

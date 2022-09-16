@@ -2,7 +2,6 @@
 import { lazy, createSignal, createEffect, onMount, onCleanup } from "solid-js";
 import { Router,  Link, useParams } from "@solidjs/router";
 import moment from 'moment';
-import InnerHTML from 'dangerously-set-html-content'
 import toast, { Toaster } from 'solid-toast';
 import 'moment/dist/locale/es';
 moment.updateLocale('es', {
@@ -13,7 +12,7 @@ moment.updateLocale('es', {
 
 //Services---------------------|
 import VoxService from "../services/apiCall.jsx";
-import { FiBarChart2, FiPaperclip, FiLayers, FiX, FiPlus, FiAlertOctagon, FiXCircle, FiUserX, FiUser  } from "solid-icons/fi";
+import { FiBarChart2, FiPaperclip, FiLayers, FiX, FiPlus, FiAlertOctagon, FiXCircle, FiUserX, FiUser, FiStar, FiEye, FiEyeOff, FiTool  } from "solid-icons/fi";
 import { ImHammer2  } from "solid-icons/im";
 
 //Components---------------------|
@@ -29,6 +28,8 @@ function Voxes() {
   const [vox, setVox] = createSignal(false);
   const [comments, setComments] = createSignal(false);
   const [showAdminModal, setShowAdminModal] = createSignal(false);
+  const [janitorModal, setJanitorModal] = createSignal(false);
+  const [janitorCategory, setJanitorCategory] = createSignal(0);
   const params = useParams();
   const [commentDetails, setCommentDetails] = createSignal({
     commentText: "",
@@ -70,26 +71,150 @@ function Voxes() {
       .catch((e) => {});
   }, []);
 
-
+  const userTouchFunction = (tag) => {
+    console.log(tag);
+  }
   const setFunction = (data) =>  {
     if (data.comment) {
-      setAdminDetails({...adminDetails(), isComment: true, userId: data.comment.username})
+      setAdminDetails({...adminDetails(), isComment: true, userId: data.comment.username, reportId: data.comment.filename})
+    } else {
+      setAdminDetails({...adminDetails(), isComment: false, userId: data.vox.username, reportId: data.vox.filename})
     }
     setShowAdminModal(!showAdminModal())
   }
 
-  const deleteUser = () =>  {
-    console.log(adminDetails());
+
+  function processAdminTool() {
+    var errors = []
+    var data = adminDetails();
+    if (!data.reason || data.reason.length > 8 || 1 > data.reason.length) {
+      errors.push("Razon invalida")
+    }
+    if (!data.description || data.description.length > 300 ) {
+      errors.push("Descripcion invalida, podes poner un maximo de 300 caracteres")
+    }
+    if (!data.userId || data.userId.length != 36) {
+      errors.push("Usuario invalido")
+    }
+    if (!data.time || 0 > data.time || data.time > 10000000) {
+      errors.push("Tiempo invalido, se aceptan un maximo de 10 millones de minutos")
+    }
+    return errors
   }
+
+  const deleteUser = async () =>  {
+    var errors = processAdminTool()
+    if (errors && errors.length > 0) {
+      errors.forEach((item, i) => {
+        toast.error(item, {
+  className: 'border-2 border-gray-600',
+  style: {
+    background: '#1f2937',
+    color: '#f3f4f6'
+  },
+
+      });
+    })
+
+    } else {
+          const data = await VoxService.adminTool({data: adminDetails(), user: user, type: 'delete'});
+          if (data.data.errors) {
+            data.data.errors.forEach((item, i) => {
+              toast.error(item, {
+    className: 'border-2 border-gray-600',
+    style: {
+      background: '#1f2937',
+      color: '#f3f4f6'
+    },
+
+  })
+            });
+          } else {
+            window.location.reload(false)
+          }
+    }
+  }
+
+  const moveCategory = async () =>  {
+          const data = await VoxService.janitorTools({category: janitorCategory(), user: user, vox: vox()});
+          if (data.data.errors) {
+            data.data.errors.forEach((item, i) => {
+              toast.error(item, {
+    className: 'border-2 border-gray-600',
+    style: {
+      background: '#1f2937',
+      color: '#f3f4f6'
+    },
+
+  })
+            });
+          } else {
+            window.location.reload(false)
+          }
+  }
+
   const submitPrevent = (e) => {
   e.preventDefault();
   }
-  const banUser = () =>  {
 
+  const banUser = async () =>  {
+    var errors = processAdminTool()
+    if (errors && errors.length > 0) {
+      errors.forEach((item, i) => {
+        toast.error(item, {
+  className: 'border-2 border-gray-600',
+  style: {
+    background: '#1f2937',
+    color: '#f3f4f6'
+  },
+
+      });
+    })
+
+    } else {
+          const data = await VoxService.adminTool({data: adminDetails(), user: user, type: 'ban'});
+          if (data.data.errors) {
+            data.data.errors.forEach((item, i) => {
+              toast.error(item, {
+    className: 'border-2 border-gray-600',
+    style: {
+      background: '#1f2937',
+      color: '#f3f4f6'
+    },
+
+  })
+            });
+          } else {
+            window.location.reload(false)
+          }
+    }
   }
   const viewUser = () =>  {
-
+    toast.error('Todavia no se implemento esta opcion anon', {
+className: 'border-2 border-gray-600',
+style: {
+background: '#1f2937',
+color: '#f3f4f6'
+},  iconTheme: {
+    primary: '#ffe561',
+    secondary: '#1f2937'
   }
+
+  });
+  }
+
+
+
+
+
+
+
+
+
+
+
+
+
 
   const commentReportFunction = async (comment) => {
     var data = await VoxService.postReportComment({comment: comment, vox: vox(), user: user})
@@ -184,7 +309,9 @@ function Voxes() {
     if ((commentDetails().commentSource === 'file') && (commentFormat != 'png') && (commentFormat != 'gif') && (commentFormat != 'jpg') && (commentFormat != 'jpeg')) {
       errors.push('El formato no esta sorportado')
     }
-
+    if ((!user) || (!user.userData) || (!user.userData.userId || user.userData.userId.length != 36)) {
+      errors.push('Sesion invalida, logueate usando el boton "iniciar vox"')
+    }
     if (!commentDetails().commentText || commentDetails().commentText > 3000) {
       errors.push('Comentario invalido')
     }
@@ -268,31 +395,42 @@ function Voxes() {
           </div>
           <div class="voxBar">
             <div class="actions">
-              <div class="voxOption">
+              <div class="voxOption report"  onClick={() => voxReportFunction(vox())}>
+              <FiAlertOctagon/>
+                <span class="voxOptionText ">
 
-                <span class="voxOptionText report" style="display: flex;" onClick={() => voxReportFunction(vox())}>
-                <FiAlertOctagon/>
                   Denunciar
                 </span>
               </div>
               <div class="voxOption ">
-                <i data-parent="" class="fas fa-star"></i>
+                <FiStar/>
                 <span data-parent="" class="voxOptionText">
                   Favorito
                 </span>
               </div>
               <div class="voxOption ">
-                <i data-parent="" class="fas fa-thumbtack"></i>
+                <FiEye/>
                 <span data-parent="" class="voxOptionText">
                   Seguir
                 </span>
               </div>
               <div class="voxOption ">
-                <i data-parent="" class="fas fa-lock"></i>
+                <FiEyeOff/>
                 <span data-parent="" class="voxOptionText">
                   Ocultar
                 </span>
-              </div>
+                </div>
+                {user && user.userData && user.userData.rank != "anon" && user.userData.rank != "janitor" ?
+                <div class="voxOption banTag" onClick={() => setFunction({vox: vox()})}><ImHammer2 /><span data-parent="" class="voxOptionText">Admin tools</span></div>
+                :
+                ''
+                }
+                {user && user.userData && user.userData.rank != "anon" ?
+                <div class="voxOption janitorTool" onClick={() => setJanitorModal(!janitorModal())}><FiTool  /><span data-parent="" class="voxOptionText">Janitor tools</span></div>
+                :
+                ''
+                }
+
             </div>
 
             <div class="metadata">
@@ -364,7 +502,7 @@ function Voxes() {
         <div class="comment commentfloat" id="H1YAITF" data-id="3554746"  style={"position: absolute; right: calc(50% - 60px); top: calc(" + hoverDetails().posY + 'px - 44px); max-width: 332px; '}>
           <div class="commentAvatar">
             <div class={"unselect avatarColor " + comments().filter(x => x.commentId === hoverDetails().hoverData)[0].anonColor}>
-              <span class="avatarText">ANON</span>
+              <span class="avatarText">{ vox().dice ? <span class="avatarText" style="font-size: 40px">{comments().filter(x => x.commentId === hoverDetails().hoverData)[0].anonNumber}</span> : <span class="avatarText">ANON</span>}</span>
             </div>
           </div>
           <div class="commentBody">
@@ -435,6 +573,7 @@ function Voxes() {
               onChange={(e) =>
                 setCommentDetails({ ...commentDetails(), commentText: e.target.value })
               }
+              value={commentDetails().commentText}
             ></textarea>
 
 
@@ -562,10 +701,12 @@ function Voxes() {
             <>
             {comments() && comments().map((comment) => {
               return (
-                <div class="comment" id={comment.commentId}>
+                <div class="comment" id={comment.commentId} onClick={(e) =>
+                  setCommentDetails({ ...commentDetails(), commentText: commentDetails().commentText + '\r' + ">>" +  comment.commentId})
+                }>
                   <div class="commentAvatar">
                     <div class={'unselect avatarColor ' + comment.anonColor}>
-                      <span class="avatarText">ANON</span>
+                      {vox().dice ? <span class="avatarText" style="font-size: 40px">{comment.anonNumber}</span> :  <span class="avatarText">ANON</span>}
                     </div>
                   </div>
                   <div class="commentBody">
@@ -579,7 +720,11 @@ function Voxes() {
                         <span class="commentTag pointer">
                           {comment.commentId}
                         </span>
+                    {user && user.userData && user.userData.rank != "anon" && user.userData.rank != "janitor" ?
                         <ImHammer2 class="banTag" onClick={() => setFunction({comment: comment})}/>
+                        :
+                        ''
+                      }
                       </div>
                       <div class="commentMetaRight">
                         <div class="commentCreatedAt">{moment(comment.date).fromNow()}</div> <div class="commentCreatedAt report" style="padding-left: 10px" onClick={() => commentReportFunction(comment)}><FiAlertOctagon/> </div>
@@ -598,7 +743,9 @@ function Voxes() {
                   }
                     {comment.taggedTo && comment.taggedTo.length? <div class="commentReply">taggeando a: {comment.taggedTo.map((tag) => {
                       return(
-                        <a href={'#' + tag} onMouseEnter={(e) => setHoverDetails({ ...hoverDetails(), posY: e.target.offsetTop, hoverData: tag, isHover: true})} onMouseLeave={(e) => setHoverDetails({ ...hoverDetails(), isHover: false})}> {'>>' + tag} </a>
+                        <a href={'#' + tag} onTouchStart={(e) => {
+                          userTouchFunction(tag)
+                        }} onMouseEnter={(e) => setHoverDetails({ ...hoverDetails(), posY: e.target.offsetTop, hoverData: tag, isHover: true})} onMouseLeave={(e) => setHoverDetails({ ...hoverDetails(), isHover: false})}> {'>>' + tag} </a>
                       )
                     })}</div>
                     :
@@ -686,7 +833,84 @@ function Voxes() {
         ''
 
       }
+      { janitorModal() ?
+        <>
+        <div>
+        <form class="modalBox createVox openModal" id="verify" onSubmit={submitPrevent}>
+          <select name="niche" onChange={(e) => setJanitorCategory(e.target.value)}>
+          <option value="" selected="selected">
+            Elige una categoría
+          </option>
+          <optgroup label="Ciencias e informatica">
+          <option value="29">Ciencia</option>
+          <option value="8">Descargas</option>
+          <option value="28">Programacion</option>
+          <option value="30">Tecnologia</option>
+          </optgroup>
+          <optgroup label="Humanidades">
+          <option value="2">Arte</option>
+          <option value="39">Humanidades</option>
+          <option value="37">Literatura</option>
+          <option value="38">Lugares</option>
+          <option value="18">Historia</option>
+          <option value="12">Gastronomia</option>
+          </optgroup>
+          <optgroup label="TV Y Series">
+          <option value="1">Anime</option>
+          <option value="6">Cine y TV</option>
+          <option value="32">Youtube</option>
+          </optgroup>
+          <optgroup label="General">
+          <option value="5">Consejos</option>
+          <option value="13">General</option>
+          <option value="17">Historias</option>
+          <option value="27">Preguntas</option>
+          <option value="25">Paranormal</option>
+          </optgroup>
+          <optgroup label="Politica">
+          <option value="35">Noticias</option>
+          <option value="26">Politica</option>
+          <option value="9">Economia</option>
+          </optgroup>
+          <optgroup label="Varios">
+          <option value="14">Juegos</option>
+          <option value="34">Musica</option>
+          <option value="20">Humor</option>
+          </optgroup>
+          <optgroup label="Deportes">
+          <option value="3">Autos</option>
+          <option value="7">Deportes</option>
+          <option value="11">Fitness</option>
+          <option value="16">Gimnasio</option>
+          <option value="33">Salud</option>
+          </optgroup>
+          <optgroup label="Internacional">
+          <option value="19">Internacional</option>
+          <option value="4">Random Internacional</option>
+          </optgroup>
+          <optgroup label="Off Topic">
+          <option value="24">Omniverso</option>
+          <option value="10">Soy mujer</option>
+          <option value="36">Normies</option>
+          <option value="31">Random</option>
+          </optgroup>
+          <optgroup label="Pornografia y Gore">
+          <option value="22">Pornografia</option>
+          <option value="15">Gore</option>
+          <option value="23">Fetiches</option>
+          <option value="21">LGBT</option>
+          </optgroup>
+          </select>
+          <button class="buttonPress" id="newVox" type="submit" style="background: #a17a37; border-color: #a17a37" onClick={moveCategory}>
+            <span> <FiTool/> Recategorizar</span>
+          </button>
+          </form>
+        </div>
+        </>
+        :
+        ''
 
+      }
 
     </main>
     </>

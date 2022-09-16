@@ -131,7 +131,7 @@ function redirectFuncReport(notification) {
 
 
         <div class="logo unselect">
-          <Link href="/">devox</Link>
+          <a href="/" >devox</a>
         </div>
         <ul class="menu unselect" id="navbarMenu">
           <li class="navbarCategories pointer" onClick={showCategoryBarFunc}>
@@ -181,12 +181,12 @@ function redirectFuncReport(notification) {
             <FiUser />
           </li>}
 
-          {user() && user().userData && reports() && reports().length ?
+          {user() && user().userData && reports() && reports().length && user().userData.rank != "anon" && user().userData.rank != "janitor" ?
             <li class="menuIcon tooltip-bottom mobile" style="color: red" onClick={() => setShowReports(!showReports())}>
             <FiAlertTriangle/>
           </li>
           :
-            user() && user().userData ?
+            user()  && user().userData && user().userData.rank != "anon" && user().userData.rank != "janitor" ?
             <li class="menuIcon tooltip-bottom mobile" onClick={() => setShowReports(!showReports())}>
             <FiAlertTriangle/>
           </li>
@@ -232,7 +232,7 @@ function redirectFuncReport(notification) {
         :
       ''
     }
-        {showReports() ? reports() && user().userData && reports().length ?
+        {showReports() && user().userData.rank != "anon" && user().userData.rank != "janitor" ? reports() && user().userData && reports().length ?
           <div class="menuModal notifications" id="notificationsList" >
           <ul>
           {

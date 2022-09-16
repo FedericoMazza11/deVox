@@ -1,7 +1,5 @@
 //SolidJS---------------------|
 import { createSignal } from "solid-js";
-import swal from 'sweetalert';
-
 //Styles---------------------|
 import '../assets/css/styles.css';
 
